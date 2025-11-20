@@ -1,31 +1,23 @@
-import { useEffect, useState } from 'react';
-import { TaskList } from './components/TaskList';
-import { TaskDetail } from './components/TaskDetail';
-import { vscode } from './utils/vscode';
-import type { WrikeWorkflow } from './types/wrike';
-import './App.css';
+import { useState, useEffect } from 'react';
+import { ProjectSelector } from './components/ProjectSelector';
+import { ProjectWorkspace } from './components/ProjectWorkspace';
+import type { ViewMode, WorkspaceViewType } from './types/views';
 
 function App() {
-  const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [folderId] = useState<string>('IEAGVSI2I4GKT2BI'); // Default folder ID for now, should be dynamic
-  const [workflows, setWorkflows] = useState<WrikeWorkflow[]>([]);
-  const [customFields, setCustomFields] = useState<any[]>([]); // Type this properly if possible
+  const [viewMode, setViewMode] = useState<ViewMode>('projectSelector');
+  const [activeView, setActiveView] = useState<WorkspaceViewType>('table');
+  const [selectedFolder, setSelectedFolder] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [error, setError] = useState<{ message: string; isAuthError: boolean } | null>(null);
 
   useEffect(() => {
-    // Initial data fetch
-    vscode.postMessage({ command: 'getWorkflows' });
-    vscode.postMessage({ command: 'getCustomFields' });
-
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-      switch (message.command) {
-        case 'getWorkflowsResponse':
-          setWorkflows(message.payload);
-          break;
-        case 'getCustomFieldsResponse':
-          setCustomFields(message.payload);
-          break;
+      if (message.command === 'error') {
+        setError(message.payload);
+        setTimeout(() => setError(null), 10000);
       }
     };
 
@@ -33,33 +25,46 @@ function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const handleTaskSelect = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setCurrentView('detail');
+  const handleProjectSelect = (folderId: string, folderName: string) => {
+    setSelectedFolder({ id: folderId, name: folderName });
+    setViewMode('workspace');
   };
 
-  const handleCloseDetail = () => {
-    setSelectedTaskId(null);
-    setCurrentView('list');
+  const handleBackToSelector = () => {
+    setViewMode('projectSelector');
+    setSelectedFolder(null);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {currentView === 'list' && (
-        <TaskList
-          folderId={folderId}
-          onTaskSelect={handleTaskSelect}
-          selectedTaskId={selectedTaskId}
-        />
+    <div className="min-h-screen bg-light relative">
+      {/* Error Banner */}
+      {error && (
+        <div className={`fixed top-0 left-0 right-0 z-50 p-4 text-white ${error.isAuthError ? 'bg-red' : 'bg-blue'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-bold">{error.isAuthError ? '🔒 Authentication Error' : '⚠️ Error'}</span>
+              <span>{error.message}</span>
+            </div>
+            <button onClick={() => setError(null)} className="text-white hover:opacity-100 opacity-50 transition">
+              ✕
+            </button>
+          </div>
+        </div>
       )}
-      {currentView === 'detail' && selectedTaskId && (
-        <TaskDetail
-          taskId={selectedTaskId}
-          onClose={handleCloseDetail}
-          customFields={customFields}
-          workflows={workflows}
-        />
-      )}
+
+      <div className={error ? 'mt-16' : ''}>
+        {viewMode === 'projectSelector' ? (
+          <ProjectSelector onProjectSelect={handleProjectSelect} />
+        ) : selectedFolder ? (
+          <ProjectWorkspace
+            folderId={selectedFolder.id}
+            folderName={selectedFolder.name}
+            activeView={activeView}
+            onViewChange={setActiveView}
+            onBack={handleBackToSelector}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

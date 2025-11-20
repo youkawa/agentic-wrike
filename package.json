@@ -16,6 +16,10 @@
       {
         "command": "wrike.openBoard",
         "title": "Wrike: Open Board"
+      },
+      {
+        "command": "wrike.setToken",
+        "title": "Wrike: Set Token"
       }
     ]
   },
@@ -46,8 +50,5 @@
     "vitest": "^0.34.0",
     "webpack": "^5.85.0",
     "webpack-cli": "^5.1.1"
-  },
-  "dependencies": {
-    "axios": "^1.13.2"
   }
 }

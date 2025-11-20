@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { X, Loader2, Calendar, Flag, FileText, User, Edit2, Check } from 'lucide-react';
+import { X, Loader2, FileText, Edit2, Check } from 'lucide-react';
 import type { WrikeTask, WrikeCustomFieldDef, WrikeWorkflow, WrikeUser, WrikeAttachment } from '../types/wrike';
 import { vscode } from '../utils/vscode';
 
@@ -207,22 +207,22 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
     };
 
     return (
-        <div className="fixed inset-0 lg:right-0 lg:left-auto lg:w-96 bg-white shadow-2xl lg:border-l border-slate-200 flex flex-col animate-slide-in z-50">
+        <div className="fixed inset-y-0 right-0 w-full lg:w-[480px] bg-white shadow-2xl border-l border-gray-200 flex flex-col animate-in slide-in-from-right duration-300 z-50">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-200">
-                <h2 className="text-lg font-semibold text-slate-900">Task Details</h2>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
+                <h2 className="text-lg font-bold text-gray-900">Task Details</h2>
                 <button
                     onClick={onClose}
-                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-white rounded-full transition-colors text-gray-500 hover:text-gray-900 hover:shadow-sm"
                 >
-                    <X className="w-5 h-5 text-slate-600" />
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 {/* Editable Title */}
-                <div>
+                <div className="group">
                     {isEditingTitle ? (
                         <div className="flex items-center gap-2">
                             <input
@@ -234,21 +234,26 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
                                     if (e.key === 'Enter') handleTitleSave();
                                     if (e.key === 'Escape') setIsEditingTitle(false);
                                 }}
-                                className="flex-1 text-xl font-bold text-slate-900 border-b-2 border-blue-500 focus:outline-none"
+                                className="w-full text-xl font-bold px-2 py-1 border-b-2 border-blue-500 focus:outline-none bg-transparent"
                             />
                             <button
                                 onClick={handleTitleSave}
-                                className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                             >
                                 <Check className="w-5 h-5" />
                             </button>
                         </div>
                     ) : (
-                        <div className="flex items-start gap-2 group">
-                            <h3 className="flex-1 text-xl font-bold text-slate-900">{task.title}</h3>
+                        <div className="flex items-start gap-2">
+                            <h3
+                                className="flex-1 text-xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                onClick={() => setIsEditingTitle(true)}
+                            >
+                                {task.title}
+                            </h3>
                             <button
                                 onClick={() => setIsEditingTitle(true)}
-                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-all"
+                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-600 transition-all"
                             >
                                 <Edit2 className="w-4 h-4" />
                             </button>
@@ -259,146 +264,140 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
                             href={task.permalink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-700 underline"
+                            className="text-sm text-blue-600 hover:underline mt-1 inline-block font-medium"
                         >
                             Open in Wrike
                         </a>
                     )}
                 </div>
 
-                {/* Editable Importance */}
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                        <Flag className="w-4 h-4 inline mr-1" />
-                        Importance
-                    </label>
-                    <select
-                        value={task.importance}
-                        onChange={(e) => handleImportanceChange(e.target.value as 'High' | 'Normal' | 'Low')}
-                        disabled={isUpdating}
-                        className={`w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 font-medium ${task.importance === 'High'
-                            ? 'text-red-800'
-                            : task.importance === 'Low'
-                                ? 'text-gray-800'
-                                : 'text-blue-800'
-                            }`}
-                    >
-                        <option value="High">High</option>
-                        <option value="Normal">Normal</option>
-                        <option value="Low">Low</option>
-                    </select>
+                {/* Status & Importance Grid */}
+                <div className="grid grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Status
+                        </label>
+                        <select
+                            value={task.customStatusId || ''}
+                            onChange={(e) => handleStatusChange(e.target.value)}
+                            disabled={isUpdating}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700"
+                        >
+                            <option value="">Select status</option>
+                            {availableStatuses.map((status) => (
+                                <option key={status.id} value={status.id}>
+                                    {status.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            Importance
+                        </label>
+                        <select
+                            value={task.importance}
+                            onChange={(e) => handleImportanceChange(e.target.value as 'High' | 'Normal' | 'Low')}
+                            disabled={isUpdating}
+                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium ${task.importance === 'High'
+                                ? 'text-red-600'
+                                : task.importance === 'Low'
+                                    ? 'text-gray-500'
+                                    : 'text-blue-600'
+                                }`}
+                        >
+                            <option value="High">High</option>
+                            <option value="Normal">Normal</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
                 </div>
 
                 {/* Assignees */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                        <User className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                         Assignees
                     </label>
-                    <div className="space-y-2 border border-slate-200 rounded-lg p-3 max-h-40 overflow-y-auto">
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 max-h-40 overflow-y-auto space-y-1 shadow-sm">
                         {contacts.map(user => {
                             const isAssigned = task.responsibleIds?.includes(user.id);
                             return (
-                                <label key={user.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                                <label key={user.id} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors">
                                     <input
                                         type="checkbox"
                                         checked={isAssigned || false}
                                         onChange={(e) => handleAssigneeChange(user.id, e.target.checked)}
                                         disabled={isUpdating}
-                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
                                     />
-                                    <span className={isAssigned ? 'font-medium text-slate-900' : 'text-slate-600'}>
-                                        {user.firstName} {user.lastName}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-700">
+                                            {user.firstName[0]}{user.lastName[0]}
+                                        </div>
+                                        <span className={isAssigned ? 'font-medium text-gray-900' : 'text-gray-600'}>
+                                            {user.firstName} {user.lastName}
+                                        </span>
+                                    </div>
                                 </label>
                             );
                         })}
-                        {contacts.length === 0 && <p className="text-sm text-slate-500">No contacts available</p>}
+                        {contacts.length === 0 && <p className="text-sm text-gray-500 italic">No contacts available</p>}
                     </div>
                 </div>
 
-                {/* Editable Dates - Native HTML5 Inputs */}
+                {/* Dates */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                        <Calendar className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                         Dates
                     </label>
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-xs text-slate-600 mb-1">Start Date</label>
+                            <label className="block text-xs text-gray-500 mb-1.5 font-medium">Start Date</label>
                             <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => handleDateChange('start', e.target.value)}
                                 disabled={isUpdating}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50 text-slate-900"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-slate-600 mb-1">Due Date</label>
+                            <label className="block text-xs text-gray-500 mb-1.5 font-medium">Due Date</label>
                             <input
                                 type="date"
                                 value={dueDate}
                                 onChange={(e) => handleDateChange('due', e.target.value)}
                                 min={startDate || undefined}
                                 disabled={isUpdating}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50 text-slate-900"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* Status */}
+                {/* Description */}
                 <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-slate-700 mb-2">
-                        Status
-                        {selectedWorkflow && (
-                            <span className="ml-2 text-xs text-slate-500">
-                                ({selectedWorkflow.name})
-                            </span>
-                        )}
-                    </label>
-                    <select
-                        id="status"
-                        value={task.customStatusId || ''}
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                        disabled={isUpdating}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 text-slate-900"
-                    >
-                        <option value="">Select status</option>
-                        {availableStatuses.map((status) => (
-                            <option key={status.id} value={status.id}>
-                                {status.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Editable Description */}
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                        <FileText className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                         Description
                     </label>
                     {isEditingDescription ? (
-                        <div className="space-y-2">
+                        <div className="space-y-3 animate-in fade-in">
                             <textarea
                                 value={editedDescription}
                                 onChange={(e) => setEditedDescription(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
-                                rows={6}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px] resize-y text-sm"
                                 placeholder="Add a description..."
                             />
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => setIsEditingDescription(false)}
-                                    className="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                                    className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleDescriptionSave}
-                                    className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
                                 >
                                     Save
                                 </button>
@@ -407,9 +406,13 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
                     ) : (
                         <div
                             onClick={() => setIsEditingDescription(true)}
-                            className="cursor-pointer text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors min-h-[60px]"
+                            className="bg-white border border-gray-200 rounded-lg p-4 min-h-[100px] cursor-pointer hover:border-blue-400 hover:shadow-sm transition-all"
                         >
-                            {task.description || <span className="text-slate-400">Click to add description...</span>}
+                            {task.description ? (
+                                <div className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">{task.description}</div>
+                            ) : (
+                                <span className="text-gray-400 text-sm italic">Click to add description...</span>
+                            )}
                         </div>
                     )}
                 </div>
@@ -417,15 +420,15 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
                 {/* Custom Fields */}
                 {task.customFields && task.customFields.length > 0 && (
                     <div>
-                        <h4 className="text-sm font-medium text-slate-700 mb-3">Custom Fields</h4>
-                        <div className="space-y-3">
+                        <h4 className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Custom Fields</h4>
+                        <div className="space-y-4">
                             {task.customFields.map((field) => {
                                 const fieldDef = customFieldMap[field.id];
                                 if (!fieldDef) return null;
 
                                 return (
                                     <div key={field.id}>
-                                        <label htmlFor={`field-${field.id}`} className="block text-sm font-medium text-slate-700 mb-1">
+                                        <label htmlFor={`field-${field.id}`} className="block text-sm font-medium text-gray-700 mb-1">
                                             {fieldDef.title}
                                         </label>
                                         {fieldDef.type === 'DropDown' && fieldDef.settings?.options ? (
@@ -434,7 +437,7 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
                                                 value={field.value || ''}
                                                 onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                                                 disabled={isUpdating}
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 text-sm"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                             >
                                                 <option value="">Select option</option>
                                                 {fieldDef.settings.options.map((option) => (
@@ -443,24 +446,14 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
                                                     </option>
                                                 ))}
                                             </select>
-                                        ) : fieldDef.type === 'Numeric' ? (
-                                            <input
-                                                type="number"
-                                                id={`field-${field.id}`}
-                                                value={field.value || ''}
-                                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
-                                                disabled={isUpdating}
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 text-sm"
-                                                placeholder={`Enter ${fieldDef.title.toLowerCase()}`}
-                                            />
                                         ) : (
                                             <input
-                                                type="text"
+                                                type={fieldDef.type === 'Numeric' ? 'number' : 'text'}
                                                 id={`field-${field.id}`}
                                                 value={field.value || ''}
                                                 onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                                                 disabled={isUpdating}
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 text-sm"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                                 placeholder={`Enter ${fieldDef.title.toLowerCase()}`}
                                             />
                                         )}
@@ -473,17 +466,19 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
 
                 {/* Attachments */}
                 <div>
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">Attachments</h4>
+                    <h4 className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Attachments</h4>
 
                     {attachments.length > 0 && (
                         <div className="space-y-2 mb-4">
                             {attachments.map((att) => (
-                                <div key={att.id} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-200 text-sm">
-                                    <div className="flex items-center gap-2 overflow-hidden">
-                                        <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                        <span className="truncate text-slate-700" title={att.name}>{att.name}</span>
+                                <div key={att.id} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between text-sm hover:shadow-sm transition-shadow">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="p-2 bg-blue-50 rounded text-blue-600">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
+                                        <span className="truncate font-medium text-gray-700" title={att.name}>{att.name}</span>
                                     </div>
-                                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">
+                                    <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
                                         {(att.size / 1024).toFixed(1)} KB
                                     </span>
                                 </div>
@@ -491,27 +486,25 @@ export function TaskDetail({ taskId, onClose, customFields, workflows }: TaskDet
                         </div>
                     )}
 
-                    <div className="space-y-3">
-                        <div className="flex gap-2">
-                            <input
-                                type="file"
-                                onChange={handleFileUpload}
-                                disabled={isUpdating}
-                                className="block w-full text-sm text-slate-500
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-full file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-blue-50 file:text-blue-700
-                                    hover:file:bg-blue-100"
-                            />
-                        </div>
+                    <div className="relative">
+                        <input
+                            type="file"
+                            onChange={handleFileUpload}
+                            disabled={isUpdating}
+                            className="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-md file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100 cursor-pointer"
+                        />
                     </div>
                 </div>
 
                 {isUpdating && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600">
+                    <div className="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm animate-in fade-in slide-in-from-bottom-4 z-50">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Updating...
+                        Saving changes...
                     </div>
                 )}
             </div>

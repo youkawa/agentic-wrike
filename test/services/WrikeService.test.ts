@@ -1,88 +1,81 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WrikeService } from '../../src/services/WrikeService';
-import axios from 'axios';
-
-// Mock axios instance
-const mockAxiosInstance = {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    defaults: { headers: { common: {} } }
-};
-
-// Mock axios module
-vi.mock('axios', () => ({
-    default: {
-        create: vi.fn(() => mockAxiosInstance)
-    }
-}));
 
 describe('WrikeService', () => {
-    let wrikeService: WrikeService;
-    const mockToken = 'test-token';
+    let service: WrikeService;
+    const token = 'test-token';
+
+    // Mock global fetch
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
 
     beforeEach(() => {
         vi.clearAllMocks();
-        wrikeService = new WrikeService(mockToken);
+        service = new WrikeService(token);
     });
 
-    it('should fetch user profile', async () => {
-        const mockResponse = {
-            data: {
-                data: [{ id: 'user1', firstName: 'John', lastName: 'Doe' }]
-            }
-        };
-        mockAxiosInstance.get.mockResolvedValue(mockResponse);
+    const mockResponse = (data: any) => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({ kind: 'response', data: data })
+        });
+    };
 
-        const user = await wrikeService.getCurrentUser();
-        expect(user).toEqual(mockResponse.data.data[0]);
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-            '/contacts?me=true'
+    it('should get current user', async () => {
+        const mockUser = { id: 'user1', firstName: 'John', lastName: 'Doe' };
+        mockResponse([mockUser]);
+
+        const user = await service.getCurrentUser();
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://www.wrike.com/api/v4/contacts?me=true',
+            expect.objectContaining({
+                method: 'GET',
+                headers: expect.objectContaining({
+                    'Authorization': `Bearer ${token}`
+                })
+            })
         );
+        expect(user).toEqual(mockUser);
     });
 
-    it('should fetch spaces', async () => {
-        const mockResponse = {
-            data: {
-                data: [{ id: 'space1', title: 'Space 1' }]
-            }
-        };
-        mockAxiosInstance.get.mockResolvedValue(mockResponse);
+    it('should get tasks', async () => {
+        const mockTasks = [{ id: 'task1', title: 'Task 1' }];
+        mockResponse(mockTasks);
 
-        const spaces = await wrikeService.getSpaces();
-        expect(spaces).toEqual(mockResponse.data.data);
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-            '/spaces'
+        const tasks = await service.getTasks('folder1');
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            expect.stringContaining('/folders/folder1/tasks'),
+            expect.objectContaining({ method: 'GET' })
         );
+        expect(tasks).toEqual(mockTasks);
     });
 
-    it('should fetch folders', async () => {
-        const mockResponse = {
-            data: {
-                data: [{ id: 'folder1', title: 'Folder 1' }]
-            }
-        };
-        mockAxiosInstance.get.mockResolvedValue(mockResponse);
+    it('should create task', async () => {
+        const mockTask = { id: 'task1', title: 'New Task' };
+        mockResponse([mockTask]);
 
-        const folders = await wrikeService.getFolders('space1');
-        expect(folders).toEqual(mockResponse.data.data);
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-            '/spaces/space1/folders'
+        const payload = { title: 'New Task', status: 'Active' };
+        const task = await service.createTask('folder1', payload);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://www.wrike.com/api/v4/folders/folder1/tasks',
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify(payload)
+            })
         );
+        expect(task).toEqual(mockTask);
     });
 
-    it('should fetch tasks', async () => {
-        const mockResponse = {
-            data: {
-                data: [{ id: 'task1', title: 'Task 1' }]
-            }
-        };
-        mockAxiosInstance.get.mockResolvedValue(mockResponse);
+    it('should handle errors', async () => {
+        fetchMock.mockResolvedValue({
+            ok: false,
+            status: 401,
+            statusText: 'Unauthorized'
+        });
 
-        const tasks = await wrikeService.getTasks('folder1');
-        expect(tasks).toEqual(mockResponse.data.data);
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-            expect.stringContaining('/folders/folder1/tasks?fields=')
-        );
+        await expect(service.getTasks('folder1')).rejects.toThrow('Wrike API Error: 401 Unauthorized');
     });
 });

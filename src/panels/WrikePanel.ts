@@ -99,6 +99,14 @@ export class WrikePanel {
                             const tasks = await this._wrikeService.getTasks(payload.folderId);
                             webview.postMessage({ command: 'getTasksResponse', payload: tasks });
                             break;
+                        case 'getFolders':
+                            const folders = await this._wrikeService.getFolders(payload.spaceId);
+                            webview.postMessage({ command: 'getFoldersResponse', payload: folders });
+                            break;
+                        case 'getSpaces':
+                            const spaces = await this._wrikeService.getSpaces();
+                            webview.postMessage({ command: 'getSpacesResponse', payload: spaces });
+                            break;
                         case 'getTask':
                             const task = await this._wrikeService.getTask(payload.taskId);
                             webview.postMessage({ command: 'getTaskResponse', payload: task });
@@ -136,9 +144,41 @@ export class WrikePanel {
                             }
                             webview.postMessage({ command: 'tasksUpdated' });
                             break;
+                        case 'createTask':
+                            const newTask = await this._wrikeService.createTask(payload.folderId, payload.taskData);
+                            webview.postMessage({ command: 'taskCreated', payload: newTask });
+                            break;
                     }
                 } catch (error: any) {
-                    vscode.window.showErrorMessage(`Wrike Error: ${error.message}`);
+                    console.error(`Wrike API Error in ${command}:`, error);
+
+                    // Check if it's an authentication error
+                    if (error.message.includes('401') || error.message.includes('Authentication')) {
+                        vscode.window.showErrorMessage(
+                            'Wrike authentication failed. Your token may have expired. Please run "Wrike: Set Token" to re-authenticate.',
+                            'Set Token'
+                        ).then(selection => {
+                            if (selection === 'Set Token') {
+                                vscode.commands.executeCommand('wrike.setToken');
+                            }
+                        });
+                        webview.postMessage({
+                            command: 'error',
+                            payload: {
+                                message: 'Authentication failed. Please re-authenticate.',
+                                isAuthError: true
+                            }
+                        });
+                    } else {
+                        vscode.window.showErrorMessage(`Wrike Error: ${error.message}`);
+                        webview.postMessage({
+                            command: 'error',
+                            payload: {
+                                message: error.message,
+                                isAuthError: false
+                            }
+                        });
+                    }
                 }
             },
             undefined,

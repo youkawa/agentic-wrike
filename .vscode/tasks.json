@@ -1,0 +1,42 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "watch",
+            "problemMatcher": {
+                "owner": "typescript",
+                "source": "ts",
+                "applyTo": "closedDocuments",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ],
+                "pattern": "$tsc",
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "webpack .*? watch",
+                    "endsPattern": "compiled successfully"
+                }
+            },
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "label": "npm: watch"
+        },
+        {
+            "type": "npm",
+            "script": "compile",
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "group": "build",
+            "label": "npm: compile"
+        }
+    ]
+}

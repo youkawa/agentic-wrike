@@ -23,6 +23,8 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
     const [bulkStatus, setBulkStatus] = useState('');
     const [isPolling, setIsPolling] = useState(false);
+    const [newTaskTitle, setNewTaskTitle] = useState('');
+    const [newTaskDescription, setNewTaskDescription] = useState('');
 
     const loadTasks = useCallback((isBackground = false) => {
         if (!isBackground) setLoading(true);
@@ -126,22 +128,45 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
         });
     };
 
+    const handleCreateTask = () => {
+        if (!newTaskTitle.trim()) return;
+
+        vscode.postMessage({
+            command: 'createTask',
+            payload: {
+                folderId,
+                taskData: {
+                    title: newTaskTitle,
+                    description: newTaskDescription
+                }
+            }
+        });
+
+        setNewTaskTitle('');
+        setNewTaskDescription('');
+        setShowQuickAdd(false);
+    };
+
     return (
-        <div className="space-y-4 p-4">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900">Tasks</h2>
-                <div className="flex items-center gap-2">
+        <div className="space-y-6 p-6 max-w-5xl mx-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Tasks</h2>
+                    <p className="text-gray-500 mt-1">Manage your project tasks</p>
+                </div>
+                <div className="flex items-center gap-3">
                     <button
                         onClick={() => setShowQuickAdd(!showQuickAdd)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+                        className="wrike-btn wrike-btn-primary gap-2"
                     >
                         <Plus className="w-4 h-4" />
-                        Create Task
+                        New Task
                     </button>
                     <button
                         onClick={() => loadTasks(false)}
                         disabled={loading || isPolling}
-                        className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
                         title="Refresh tasks"
                     >
                         <RefreshCw className={`w-4 h-4 ${isPolling ? 'animate-spin' : ''}`} />
@@ -151,14 +176,14 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
 
             {/* Bulk Action Bar */}
             {selectedTaskIds.size > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between px-4 py-3 shadow-sm animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-blue-900">
+                        <span className="text-sm font-semibold text-blue-700">
                             {selectedTaskIds.size} task{selectedTaskIds.size > 1 ? 's' : ''} selected
                         </span>
                         <button
                             onClick={() => setSelectedTaskIds(new Set())}
-                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                            className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
                         >
                             Clear selection
                         </button>
@@ -167,7 +192,7 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
                         <select
                             value={bulkStatus}
                             onChange={(e) => setBulkStatus(e.target.value)}
-                            className="px-3 py-1 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="px-3 py-1.5 text-sm border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700"
                         >
                             <option value="">Select status...</option>
                             <option value="Active">Active</option>
@@ -178,28 +203,33 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
                         <button
                             onClick={handleBulkUpdate}
                             disabled={!bulkStatus}
-                            className="px-4 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                            Update Status
+                            Update
                         </button>
                     </div>
                 </div>
             )}
 
             {/* Filters & Search */}
-            <div className="flex flex-col gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-                <div className="flex gap-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                    <input
+                        type="text"
+                        placeholder="Search tasks..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+                <div className="flex gap-3">
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 cursor-pointer hover:border-gray-300 transition-colors"
                     >
                         <option value="All">All Statuses</option>
                         <option value="Active">Active</option>
@@ -210,7 +240,7 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
                     <select
                         value={importanceFilter}
                         onChange={(e) => setImportanceFilter(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 cursor-pointer hover:border-gray-300 transition-colors"
                     >
                         <option value="All">All Importance</option>
                         <option value="High">High</option>
@@ -220,19 +250,55 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
                 </div>
             </div>
 
-            {/* Create Task Modal Placeholder */}
+            {/* Create Task Modal */}
             {showQuickAdd && (
-                <div className="p-4 bg-yellow-100 text-yellow-800 rounded">
-                    Create Task Modal not implemented yet.
-                    <button onClick={() => setShowQuickAdd(false)} className="ml-2 underline">Close</button>
+                <div className="wrike-card mb-4">
+                    <h3 className="text-lg font-bold text-primary mb-4">Create New Task</h3>
+                    <div className="space-y-3">
+                        <input
+                            type="text"
+                            placeholder="Task title"
+                            value={newTaskTitle}
+                            onChange={(e) => setNewTaskTitle(e.target.value)}
+                            className="wrike-input"
+                            autoFocus
+                        />
+                        <textarea
+                            placeholder="Description (optional)"
+                            value={newTaskDescription}
+                            onChange={(e) => setNewTaskDescription(e.target.value)}
+                            className="wrike-input min-h-20 resize-y"
+                        />
+                        <div className="flex gap-2 justify-end">
+                            <button
+                                onClick={() => {
+                                    setShowQuickAdd(false);
+                                    setNewTaskTitle('');
+                                    setNewTaskDescription('');
+                                }}
+                                className="wrike-btn wrike-btn-secondary"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreateTask}
+                                disabled={!newTaskTitle.trim()}
+                                className="wrike-btn wrike-btn-primary"
+                            >
+                                Create Task
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            {/* Task List */}
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {filteredTasks.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
-                        <p className="text-slate-500">
+                    <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-200">
+                        <div className="text-gray-300 mb-3">
+                            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        </div>
+                        <p className="text-gray-500 font-medium text-lg">
                             {tasks.length === 0 ? 'No tasks in this folder' : 'No tasks match your filters'}
                         </p>
                     </div>
@@ -240,70 +306,71 @@ export function TaskList({ folderId, onTaskSelect, selectedTaskId }: TaskListPro
                     <>
                         {/* Select All Checkbox */}
                         {filteredTasks.length > 0 && (
-                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-500 font-medium">
                                 <input
                                     type="checkbox"
                                     checked={selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0}
                                     onChange={toggleSelectAll}
-                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
                                 />
-                                <span className="text-sm font-medium text-slate-700">
-                                    Select All ({filteredTasks.length})
-                                </span>
+                                <span>Select All ({filteredTasks.length})</span>
                             </div>
                         )}
 
                         {filteredTasks.map((task) => (
                             <div
                                 key={task.id}
-                                className={`flex items-start gap-3 bg-white rounded-lg border p-4 transition-all ${selectedTaskIds.has(task.id)
-                                    ? 'border-blue-300 bg-blue-50'
-                                    : selectedTaskId === task.id
-                                        ? 'border-blue-500 shadow-md ring-2 ring-blue-100'
-                                        : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
+                                className={`bg-white rounded-xl shadow-sm border transition-all hover:shadow-md cursor-pointer group relative overflow-hidden ${selectedTaskId === task.id ? 'ring-2 ring-green-500 border-transparent' : 'border-gray-200'
                                     }`}
+                                onClick={() => onTaskSelect(task.id)}
                             >
-                                {/* Checkbox */}
-                                <input
-                                    type="checkbox"
-                                    checked={selectedTaskIds.has(task.id)}
-                                    onChange={(e) => {
-                                        e.stopPropagation();
-                                        toggleTaskSelection(task.id);
-                                    }}
-                                    className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                />
+                                {/* Status Stripe */}
+                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${task.status === 'Completed' ? 'bg-green-500' :
+                                    task.status === 'Cancelled' ? 'bg-red-400' :
+                                        task.status === 'Deferred' ? 'bg-gray-400' :
+                                            'bg-blue-500'
+                                    }`}></div>
 
-                                {/* Task Content */}
-                                <button
-                                    onClick={() => onTaskSelect(task.id)}
-                                    className="flex-1 text-left"
-                                >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-slate-900 mb-1 truncate">
+                                <div className="flex-1 p-4 pl-6 flex items-start gap-4">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedTaskIds.has(task.id)}
+                                        onChange={(e) => {
+                                            e.stopPropagation();
+                                            toggleTaskSelection(task.id);
+                                        }}
+                                        className="mt-1 w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                                    />
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <h3 className="font-semibold text-gray-900 mb-1 truncate group-hover:text-blue-600 transition-colors text-lg">
                                                 {task.title}
                                             </h3>
-                                            <div className="flex items-center gap-3 text-sm text-slate-600">
-                                                <span className={`flex items-center gap-1 ${getImportanceColor(task.importance)}`}>
-                                                    <Flag className="w-3 h-3" />
-                                                    {task.importance}
-                                                </span>
-                                                {task.dates?.due && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="w-3 h-3" />
-                                                        {task.dates.due}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${task.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                task.status === 'Active' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    'bg-gray-50 text-gray-700 border-gray-200'
+                                                }`}>
                                                 {task.status}
                                             </span>
                                         </div>
+
+                                        <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                                            <span className={`flex items-center gap-1 font-medium ${getImportanceColor(task.importance)}`}>
+                                                <Flag className="w-3.5 h-3.5" />
+                                                {task.importance}
+                                            </span>
+                                            {task.dates?.due && (
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3.5 h-3.5" />
+                                                    {new Date(task.dates.due).toLocaleDateString()}
+                                                </span>
+                                            )}
+                                            <span className="text-gray-300">|</span>
+                                            <span className="font-mono text-gray-400">ID: {task.id.substring(0, 8)}...</span>
+                                        </div>
                                     </div>
-                                </button>
+                                </div>
                             </div>
                         ))}
                     </>
